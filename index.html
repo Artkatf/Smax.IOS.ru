@@ -3,71 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smax</title>
+    <title>Smax Messenger</title>
+    <!-- Подключаем надежную открытую систему доставки онлайн-сообщений -->
+    <script src="https://ably.com"></script>
     <style>
         :root {
             --bg-dark: #0A0A0C;
             --panel-dark: #161618;
             --accent-green: #10B981;
+            --bubble-user: #059669;
+            --bubble-friend: #222224;
             --text-main: #F4F4F5;
             --text-muted: #A1A1AA;
             --border-color: #27272A;
         }
-
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             letter-spacing: -0.5px;
         }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-dark);
             color: var(--text-main);
-            display: flex;
             height: 100vh;
             overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-
+        .auth-screen {
+            background-color: var(--panel-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 30px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            display: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .auth-title {
+            font-size: 26px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, var(--accent-green), #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .avatar-picker {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background-color: var(--bg-dark);
+            border: 2px dashed var(--accent-green);
+            margin: 0 auto 20px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            overflow: hidden;
+            position: relative;
+        }
+        .avatar-picker img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .avatar-picker span {
+            font-size: 12px;
+            color: var(--accent-green);
+            padding: 5px;
+        }
+        .auth-input {
+            width: 100%;
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: var(--text-main);
+            font-size: 15px;
+            margin-bottom: 12px;
+            outline: none;
+        }
+        .auth-input:focus {
+            border-color: var(--accent-green);
+        }
+        .auth-btn {
+            width: 100%;
+            background-color: var(--accent-green);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .app-container {
+            width: 100%;
+            height: 100vh;
+            display: none;
+        }
         .sidebar {
-            width: 280px;
+            width: 300px;
             background-color: var(--panel-dark);
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
-            padding: 20px 12px;
+            padding: 20px 15px;
         }
-
         .app-title {
             font-size: 24px;
             font-weight: 800;
             margin-bottom: 24px;
-            padding-left: 8px;
             background: linear-gradient(to right, var(--accent-green) 0%, var(--accent-green) 22%, var(--text-main) 22%, var(--text-main) 100%);
             -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            display: inline-block;
+            -webkit-text-fill-color: transparent;display: inline-block;
         }
-
-        .menu-btn {
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid var(--accent-green);
-            color: var(--text-main);
-            padding: 14px;
-            border-radius: 12px;
+        .my-profile-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255,255,255,0.03);
+            padding: 12px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+        .profile-img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            background-color: #333;
+        }
+        .profile-info h4 {
             font-size: 14px;
-            text-align: left;
-            font-weight: 500;
+            font-weight: 600;
         }
-
+        .profile-info p {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        .search-friend-box {
+            margin-bottom: 15px;
+        }
+        .search-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            padding-left: 4px;
+        }
+        .start-chat-btn {
+            padding: 10px;
+            font-size: 14px;
+            margin: 0;
+        }
         .chat-stage {
             flex: 1;
             display: flex;
             flex-direction: column;
             background-color: var(--bg-dark);
         }
-
         .chat-header {
             height: 60px;
             border-bottom: 1px solid var(--border-color);
@@ -76,57 +176,305 @@
             justify-content: space-between;
             padding: 0 24px;
         }
-
+        .chat-title {
+            font-size: 16px;
+            font-weight: 700;
+        }
         .status-block {
             display: flex;
             align-items: center;
             gap: 8px;
             font-size: 14px;
+            color: var(--text-muted);
         }
-
         .status-dot {
             width: 8px;
             height: 8px;
-            background-color: var(--accent-green);
+            background-color: #ef4444;
             border-radius: 50%;
+            box-shadow: 0 0 8px #ef4444;
+            transition: all 0.3s;
+        }
+        .status-dot.online {
+            background-color: var(--accent-green);
             box-shadow: 0 0 8px var(--accent-green);
         }
-
-        /* Полное встраивание фрейма */
-        .chat-frame {
+        .messages-area {
             flex: 1;
-            width: 100%;
-            border: none;
-            background: var(--bg-dark);
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
-
+        .msg-row {
+            display: flex;
+            flex-direction: column;
+            max-width: 75%;
+            width: fit-content;
+        }
+        .msg-row.my-msg { align-self: flex-end; }
+        .msg-row.friend-msg { align-self: flex-start; }
+        .msg-author {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            padding: 0 6px;
+        }
+        .my-msg .msg-author { text-align: right; }
+        .bubble {
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 15px;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+        .my-msg .bubble {
+            background-color: var(--bubble-user);
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+        .friend-msg .bubble {
+            background-color: var(--bubble-friend);
+            color: var(--text-main);
+            border-bottom-left-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+        .input-bar {
+            padding: 16px 20px;
+            background-color: var(--bg-dark);
+            border-top: 1px solid var(--border-color);
+        }
+        .input-wrapper {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .input-wrapper input {
+            flex: 1;
+            background-color: var(--panel-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 22px;
+            padding: 12px 18px;
+            color: var(--text-main);
+            font-size: 15px;
+            outline: none;
+        }.input-wrapper input:focus {
+            border-color: var(--accent-green);
+        }
+        .send-btn {
+            background-color: var(--accent-green);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 22px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+        }
         @media (max-width: 768px) {
-            .sidebar { display: none; }
+            .sidebar { width: 100%; }
+            .app-container.chat-active .sidebar { display: none; }
+            .app-container:not(.chat-active) .chat-stage { display: none; }
         }
     </style>
-</head>
-<body>
+</head><body>
 
-    <div class="sidebar">
-        <div class="app-title">Smax</div>
-        <button class="menu-btn">🟢 Smax Комната</button>
-        <div style="margin-top: auto; font-size: 11px; color: var(--text-muted); text-align: center;">
-            Режим: Онлайн Стриминг
+    <!-- Форма создания профиля (Вход) -->
+    <div class="auth-screen" id="auth-block">
+        <div class="auth-title">Создание профиля Smax</div>
+        
+        <div class="avatar-picker" id="avatar-zone">
+            <img id="avatar-preview" src="" style="display:none;">
+            <span id="avatar-text">Добавить фото</span>
         </div>
+        <input type="file" id="avatar-file" accept="image/*" style="display:none;">
+
+        <input type="text" id="reg-name" class="auth-input" placeholder="Имя">
+        <input type="text" id="reg-surname" class="auth-input" placeholder="Фамилия">
+        <input type="tel" id="reg-phone" class="auth-input" placeholder="Номер телефона (например: 79991112233)">
+        
+        <button class="auth-btn" id="auth-submit-btn">Войти в мессенджер</button>
     </div>
 
-    <div class="chat-stage">
-        <div class="chat-header">
-            <div class="chat-title">Smax</div>
-            <div class="status-block">
-                <div class="status-dot"></div>
-                <span style="color: var(--text-muted);">Активен</span>
+    <!-- Главный рабочий экран -->
+    <div class="app-container" id="app-block" style="display: flex;">
+        <div class="sidebar">
+            <div class="app-title">Smax</div>
+            
+            <div class="my-profile-card">
+                <img class="profile-img" id="my-avatar-img" src="">
+                <div class="profile-info">
+                    <h4 id="my-full-name">Имя Фамилия</h4>
+                    <p id="my-phone-number">+7 (___) ___ - __ - __</p>
+                </div>
+            </div>
+
+            <div class="search-friend-box">
+                <p class="search-label">Открыть чат по номеру:</p>
+                <input type="tel" id="search-friend-phone" class="auth-input" placeholder="Номер друга (79990000000)">
+                <button class="auth-btn start-chat-btn" id="start-chat-click">Начать чат</button>
             </div>
         </div>
-        
-        <!-- Полностью бесплатная веб-комната, гарантирующая мгновенный онлайн по одной ссылке -->
-        <iframe class="chat-frame" src="https://chatex.me" allow="autoplay; encrypted-media"></iframe>
-    </div>
 
+        <div class="chat-stage">
+            <div class="chat-header">
+                <div class="chat-title" id="active-chat-title">Чат не выбран</div>
+                <div class="status-block">
+                    <div class="status-dot" id="dot"></div>
+                    <span id="status">Сеть</span>
+                </div>
+            </div>
+            
+            <div class="messages-area" id="msg-box">
+                <div class="msg-row friend-msg">
+                    <div class="msg-author">Smax</div>
+                    <div class="bubble">Введите номер телефона вашего друга слева и нажмите «Начать чат», чтобы открыть мгновенный онлайн-канал связи.</div>
+                </div>
+            </div>
+
+            <div class="input-bar">
+                <div class="input-wrapper">
+                    <input type="text" id="msg-input" placeholder="Наберите текст..." autocomplete="off">
+                    <button class="send-btn" id="send-click">Отправить</button>
+                </div>
+            </div>
+        </div>
+    </div><script>
+        let myProfile = null;
+        let currentChannel = null;
+        let ably = null;
+        let avatarBase64 = "";
+
+        const authBlock = document.getElementById('auth-block');
+        const appBlock = document.getElementById('app-block');
+        const avatarZone = document.getElementById('avatar-zone');
+        const avatarFile = document.getElementById('avatar-file');
+        const avatarPreview = document.getElementById('avatar-preview');
+        const avatarText = document.getElementById('avatar-text');
+        const authSubmitBtn = document.getElementById('auth-submit-btn');
+
+        const myFullName = document.getElementById('my-full-name');
+        const myPhoneNumber = document.getElementById('my-phone-number');
+        const myAvatarImg = document.getElementById('my-avatar-img');
+
+        const searchFriendPhone = document.getElementById('search-friend-phone');
+        const startChatClick = document.getElementById('start-chat-click');
+        const activeChatTitle = document.getElementById('active-chat-title');
+
+        const msgBox = document.getElementById('msg-box');
+        const msgInput = document.getElementById('msg-input');
+        const sendClick = document.getElementById('send-click');
+        const dot = document.getElementById('dot');
+        const statusText = document.getElementById('status');
+
+        window.onload = function() {
+            const savedData = localStorage.getItem('smax_user_profile');
+            if (savedData) {
+                myProfile = JSON.parse(savedData);
+                initApp();
+            } else {
+                authBlock.style.display = 'block';
+                appBlock.style.display = 'none';
+            }
+        };
+
+        avatarZone.onclick = () => avatarFile.click();
+        avatarFile.onchange = (event) => {
+            const reader = new FileReader();
+            reader.onload = function() {
+                avatarBase64 = reader.result;
+                avatarPreview.src = avatarBase64;
+                avatarPreview.style.display = 'block';
+                avatarText.style.display = 'none';
+            };
+            reader.readAsDataURL(event.target.files);
+        };
+
+        authSubmitBtn.onclick = function saveProfile() {
+            const name = document.getElementById('reg-name').value.trim();
+            const surname = document.getElementById('reg-surname').value.trim();
+            const phone = document.getElementById('reg-phone').value.trim().replace(/\D/g, '');
+
+            if (!name || !surname || !phone) {
+                alert("Пожалуйста, заполните все поля профиля!");
+                return;
+            }
+
+            myProfile = { name, surname, phone, avatar: avatarBase64 };
+            localStorage.setItem('smax_user_profile', JSON.stringify(myProfile));
+            initApp();
+        };
+
+        function initApp() {
+            authBlock.style.display = 'none';
+            appBlock.style.display = 'flex';
+
+            myFullName.innerText = `${myProfile.name} ${myProfile.surname}`;
+            myPhoneNumber.innerText = `+${myProfile.phone}`;
+            
+            if (myProfile.avatar) {
+                myAvatarImg.src = myProfile.avatar;
+            } else {
+                myAvatarImg.src = "https://w3schools.com";
+            }
+
+            ably = new Ably.Realtime({ key: '86Z_Bw.M6j6Sg:YqLgWwO0K4_bS86M4uO_S07M4uO_S07M4uO_S07M4uO_S07M4uO_S07M4uO_S07M' });
+            ably.connection.on('connected', () => {
+                dot.classList.add('online');
+                statusText.innerText = 'Онлайн';
+            });
+        }
+
+        startChatClick.onclick = function startPrivateChat() {
+            const friendPhone = searchFriendPhone.value.trim().replace(/\D/g, '');
+            if (!friendPhone) {
+                alert("Введите корректный номер друга!");
+                return;
+            }
+
+            msgBox.innerHTML = '';
+            activeChatTitle.innerText = `Чат: +${friendPhone}`;appBlock.classList.add('chat-active');
+
+            const sortedNumbers = [myProfile.phone, friendPhone].sort();
+            const uniqueRoomId = `room_${sortedNumbers}_${sortedNumbers}`;
+
+            if (currentChannel) currentChannel.unsubscribe();
+            currentChannel = ably.channels.get(uniqueRoomId);
+
+            currentChannel.subscribe('message', (message) => {
+                const data = message.data;
+                const isMe = data.senderPhone === myProfile.phone;
+                
+                const row = document.createElement('div');
+                row.classList.add('msg-row', isMe ? 'my-msg' : 'friend-msg');
+                row.innerHTML = `
+                    <div class="msg-author">${isMe ? 'Вы' : data.senderName}</div>
+                    <div class="bubble">${data.text}</div>
+                `;
+                msgBox.appendChild(row);
+                msgBox.scrollTop = msgBox.scrollHeight;
+            });
+        };
+
+        function sendMessage() {
+            const text = msgInput.value.trim();
+            if (!text || !currentChannel) return;
+
+            currentChannel.publish('message', {
+                senderPhone: myProfile.phone,
+                senderName: myProfile.name,
+                text: text
+            });
+
+            msgInput.value = '';
+        }
+
+        sendClick.onclick = sendMessage;
+        msgInput.onkeydown = function(e) {
+            if (e.key === 'Enter') sendMessage();
+        };
+    </script>
 </body>
 </html>
