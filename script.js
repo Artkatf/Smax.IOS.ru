@@ -1,305 +1,405 @@
-// --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
-let myPeer = null;
-let currentConnection = null; // Активное соединение с другом
-let currentFriendId = null;   // ID текущего собеседника
-let chatsHistory = [];         // История чатов (хранится в localStorage)
+:root {
+    --bg-dark: #0A0A0C;
+    --panel-dark: #161618;
+    --accent-green: #10B981;
+    --bubble-user: #059669;
+    --bubble-friend: #222224;
+    --text-main: #F4F4F5;
+    --text-muted: #A1A1AA;
+    --border-color: #27272A;
+}
 
-// --- ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ ---
-document.addEventListener('DOMContentLoaded', () => {
-    // Пытаемся восстановить профиль из памяти
-    const savedProfile = localStorage.getItem('smax_profile');
-    if (savedProfile) {
-        const profile = JSON.parse(savedProfile);
-        renderProfile(profile);
-        showApp();
-    } else {
-        // Если профиля нет — показываем экран входа
-        hideApp();
+* { box-sizing: border-box; margin: 0; padding: 0; letter-spacing: -0.5px; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* --- ЭКРАН АВТОРИЗАЦИИ (ВЕРТИКАЛЬНОЕ ВЫРАВНИВАНИЕ) --- */
+.auth-screen {
+    background-color: var(--panel-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    padding: 30px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: flex; /* Включаем флекс для вертикального потока */
+    flex-direction: column;
+    gap: 15px; /* Расстояние между элементами */
+}
+
+.auth-title {
+    font-size: 26px;
+    font-weight: 800;
+    margin-bottom: 0; /* Убираем лишний отступ, так как есть gap */
+    background: linear-gradient(to right, var(--accent-green), #fff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.avatar-picker {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background-color: var(--bg-dark);
+    border: 2px dashed var(--accent-green);
+    margin: 0 auto; /* Центрируем сам аватар */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+}
+
+.avatar-picker img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-picker span { font-size: 12px; color: var(--accent-green); padding: 5px; }
+
+.auth-input {
+    width: 100%;
+    background-color: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: var(--text-main);
+    font-size: 15px;
+    outline: none;
+}
+
+.auth-input:focus { border-color: var(--accent-green); }
+
+.auth-btn {
+    width: 100%;
+    background-color: var(--accent-green);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.auth-btn:hover { opacity: 0.9; }
+
+.id-container-box {
+    background-color: rgba(255,255,255,0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px;
+    font-family: monospace;
+    font-size: 13px;
+    color: var(--accent-green);
+    word-break: break-all;
+    user-select: all;
+    text-align: left;
+    margin-left: -15px; /* Компенсация padding родителя */
+    margin-right: -15px;
+}
+
+/* --- ОСНОВНОЙ ИНТЕРФЕЙС --- */
+.app-container {
+    width: 100%;
+    height: 100vh;
+    display: none;
+    flex-direction: row;
+}
+
+.sidebar {
+    width: 320px;
+    background-color: var(--panel-dark);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 15px;
+    min-width: 320px;
+}
+
+.app-title {
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 24px;
+    background: linear-gradient(to right, var(--accent-green) 0%, var(--accent-green) 35%, var(--text-main) 35%, var(--text-main) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+}
+
+.my-profile-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255,255,255,0.02);
+    padding: 12px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 20px;
+}
+
+.profile-img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background-color: #222; }
+.profile-info h4 { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.profile-info p { color: var(--accent-green); font-size: 11px; font-weight: 700; margin-top: 2px; }
+
+#chatListContainer { flex: 1; display: flex; flex-direction: column; }
+#chatList { display: flex; flex-direction: column; gap: 10px; }
+
+.chat-item {
+    padding: 12px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.chat-item:hover { background: rgba(255,255,255,0.08); }
+.chat-item-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background-color: #333; }
+.chat-item-info h5 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.chat-item-info p { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+
+.search-friend-box { border-top: 1px solid var(--border-color); padding-top: 15px; margin-top: auto; }
+.search-label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; padding-left: 4px; }
+
+/* Правая часть - Чат */
+.chat-stage { flex: 1; display: flex; flex-direction: column; background-color: var(--bg-dark); }
+
+.chat-header {
+    height: 60px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+}
+.chat-title { font-size: 15px; font-weight: 700; }
+
+.status-block { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
+.status-dot { width: 8px; height: 8px; background-color: #ef4444; border-radius: 50%; box-shadow: 0 0 8px #ef4444; transition: all 0.3s; }
+.status-dot.online { background-color: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+
+.messages-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.msg-row { display: flex; flex-direction: column; max-width: 75%; width: fit-content; }
+.msg-row.my-msg { align-self: flex-end; }
+.msg-row.friend-msg { align-self: flex-start; }
+
+.msg-author { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; padding: 0 6px; }
+.my-msg .msg-author { text-align: right; }
+
+.bubble {
+    padding: 12px 16px;
+    border-radius: 18px;
+    font-size: 15px;
+    line-height: 1.4;
+    word-break: break-word;
+}
+.my-msg .bubble { background-color: var(--bubble-user); color: #fff; border-bottom-right-radius: 4px; }
+.friend-msg .bubble { background-color: var(--bubble-friend); color: var(--text-main); border-bottom-left-radius: 4px; border: 1px solid var(--border-color); }
+
+.input-bar { padding: 16px 20px; background-color: var(--bg-dark); border-top: 1px solid var(--border-color); }
+.input-wrapper { width: 100%; display: flex; align-items: center; gap: 10px; }
+.input-wrapper input { flex: 1; background-color: var(--panel-dark); border: 1px solid var(--border-color); border-radius: 22px; padding: 12px 18px; color: var(--text-main); font-size: 15px; outline: none; }
+.input-wrapper input:focus { border-color: var(--accent-green); }
+.send-btn { background-color: var(--accent-green); border: none; color: white; padding: 12px 20px; border-radius: 22px; font-weight: 600; cursor: pointer; font-size: 14px; }
+
+/* --- Адаптивность для планшетов и мобильных --- */
+@media (max-width: 768px) {
+    body {
+        justify-content: flex-start; /* Прижимаем контент к верху, если экран маленький */
     }
 
-    // Загружаем историю чатов
-    loadChatsHistory();
-});
+    .auth-screen {
+        max-width: 100%;
+        width: 100%;
+        border-radius: 0; /* На мобильном можно убрать скругления по углам экрана */
+        padding: 20px;
+        margin: 0;
+        box-shadow: none;
+        height: 100vh; /* На весь экран */
+        overflow-y: auto; /* Если экран очень маленький, появится скролл */
+    }
 
-// --- ЭКРАН АВТОРИЗАЦИИ ---
-function previewAvatar(input) {
-    const preview = document.getElementById('avatarPreview');
-    const placeholder = document.getElementById('avatarPlaceholder');
-    
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            preview.src = e.target.result;
-            preview.style.display = 'block';
-            placeholder.style.display = 'none';
-        }
-        reader.readAsDataURL(input.files[0]);
+    /* Компактнее делаем поля ввода на входе */
+    .auth-input {
+        font-size: 14px;
+        padding: 10px 14px;
+    }
+
+    .auth-btn {
+        padding: 12px;
+        font-size: 15px;
+    }
+
+    .id-container-box {
+        margin-left: 0;
+        margin-right: 0;
+        padding: 10px;
+        font-size: 12px;
+    }
+
+    /* Основной контейнер: сайдбар на всю ширину, чат скрыт по умолчанию */
+    .app-container {
+        display: flex;
+        flex-direction: column; /* На мобильном сначала сайдбар, потом чат (если активен) */
+        height: 100vh;
+    }
+
+    .sidebar {
+        width: 100%;
+        min-width: auto;
+        padding: 15px;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color); /* Линия под списком чатов */
+        order: 1; /* Сайдбар будет первым */
+        max-height: 50vh; /* Ограничиваем высоту списка, чтобы чат не уезжал вниз */
+        overflow-y: auto;
+    }
+
+    /* Когда чат открыт (.chat-active), сайдбар скрывается */
+    .app-container.chat-active .sidebar {
+        display: none;
+    }
+
+    /* Чат занимает всё место, когда сайдбар скрыт */
+    .chat-stage {
+        flex: 1;
+        width: 100%;
+        order: 2;
+    }
+
+    /* Шапка чата */
+    .chat-header {
+        padding: 0 16px;
+        height: 52px;
+        align-items: center;
+    }
+
+    #backBtn {
+        display: block; /* Кнопка "Назад" видна только в режиме чата */
+        margin-right: 10px;
+    }
+
+    .chat-title {
+        font-size: 14px;
+    }
+
+    .status-block {
+        gap: 6px;
+    }
+
+    .status-dot {
+        width: 6px;
+        height: 6px;
+    }
+
+    /* Область сообщений */
+    .messages-area {
+        padding: 16px 12px; /* Чуть меньше отступы по бокам */
+    }
+
+    .msg-row {
+        max-width: 85%; /* Пузыри чуть шире, чтобы не были слишком узкими */
+    }
+
+    .bubble {
+        padding: 10px 14px;
+        font-size: 14px;
+        border-radius: 14px;
+    }
+
+    /* Поле ввода */
+    .input-bar {
+        padding: 12px 16px;
+    }
+
+    .input-wrapper input {
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+
+    .send-btn {
+        padding: 10px 18px;
+        font-size: 13px;
+    }
+
+    /* Элементы профиля и списка чатов */
+    .my-profile-card {
+        padding: 10px;
+        border-radius: 12px;
+    }
+
+    .profile-img {
+        width: 40px;
+        height: 40px;
+    }
+
+    .profile-info h4 {
+        font-size: 13px;
+    }
+
+    .profile-info p {
+        font-size: 10px;
+    }
+
+    .chat-item {
+        padding: 10px;
+        border-radius: 10px;
+    }
+
+    .chat-item-avatar {
+        width: 36px;
+        height: 36px;
+    }
+
+    .chat-item-info h5 {
+        font-size: 13px;
+    }
+
+    .chat-item-info p {
+        font-size: 11px;
+        max-width: 100%; /* Текст не обрезается, а переносится */
     }
 }
 
-function saveProfile() {
-    const firstName = document.getElementById('firstNameInput').value.trim();
-    const lastName = document.getElementById('lastNameInput').value.trim();
-    const avatarPreview = document.getElementById('avatarPreview').src;
-    
-    if (!firstName || !lastName) {
-        alert('Пожалуйста, введите Имя и Фамилию');
-        return;
+/* --- Очень узкие экраны (старые телефоны, 320-360px) --- */
+@media (max-width: 375px) {
+    .auth-title {
+        font-size: 22px;
     }
 
-    // Генерируем уникальный ID (простой вариант: случайная строка + время)
-    const myId = 'user_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
-
-    const profile = {
-        firstName,
-        lastName,
-        avatar: avatarPreview,
-        id: myId
-    };
-
-    // Сохраняем в localStorage
-    localStorage.setItem('smax_profile', JSON.stringify(profile));
-
-    // Рендерим профиль и показываем приложение
-    renderProfile(profile);
-    showApp();
-
-    // Инициализируем PeerJS
-    initPeer(myId);
-}
-
-function renderProfile(profile) {
-    document.getElementById('myAvatar').src = profile.avatar || 'https://via.placeholder.com/50';
-    document.getElementById('myFullNameDisplay').textContent = `${profile.firstName} ${profile.lastName}`;
-    document.getElementById('myIdDisplay').textContent = `ID: ${profile.id}`;
-}
-
-// Переключение экранов
-function showApp() {
-    document.getElementById('authScreen').style.display = 'none';
-    document.getElementById('appContainer').style.display = 'flex';
-}
-
-function hideApp() {
-    document.getElementById('authScreen').style.display = 'flex';
-    document.getElementById('appContainer').style.display = 'none';
-}
-
-// --- PEERJS ЛОГИКА (P2P СОЕДИНЕНИЕ) ---
-function initPeer(myId) {
-    myPeer = new Peer(myId, {
-        debug: 2 // Уровень логирования (можно убрать для продакшена)
-    });
-
-    myPeer.on('open', (id) => {
-        console.log('Мой ID:', id);
-        document.getElementById('myIdPreviewBox').textContent = `ID: ${id}`;
-    });
-
-    myPeer.on('connection', (conn) => {
-        handleIncomingConnection(conn);
-    });
-}
-
-function handleIncomingConnection(conn) {
-    conn.on('data', (data) => {
-        receiveMessage(conn, data);
-    });
-    
-    conn.on('error', (err) => {
-        console.error('Ошибка соединения:', err);
-    });
-
-    currentConnection = conn;
-    currentFriendId = conn.peer; // ID того, кто нам написал
-    startChatSession(conn);
-}
-
-function connectToFriend() {
-    const friendId = document.getElementById('friendIdInput').value.trim();
-    if (!friendId) {
-        alert('Введите ID друга');
-        return;
+    .avatar-picker {
+        width: 80px;
+        height: 80px;
     }
 
-    const conn = myPeer.connect(friendId);
-    
-    conn.on('open', () => {
-        currentConnection = conn;
-        currentFriendId = friendId;
-        startChatSession(conn);
-        conn.on('data', (data) => receiveMessage(conn, data));
-    });
-
-    conn.on('error', (err) => {
-        alert('Не удалось соединиться. Возможно, ID неверный или друг оффлайн.');
-        console.error(err);
-    });
-}
-
-function startChatSession(conn) {
-    // Показываем правую панель чата
-    document.getElementById('appContainer').classList.add('chat-active');
-    
-    // Обновляем заголовок чата
-    const chatTitle = document.getElementById('chatWithTitle');
-    chatTitle.textContent = `Чат с ID: ${currentFriendId}`;
-
-    // Меняем статус на "Онлайн"
-    updateStatus(true);
-
-    // Очищаем поле ввода ID
-    document.getElementById('friendIdInput').value = '';
-
-    // Добавляем/обновляем чат в историю
-    addToChatsHistory(currentFriendId, 'Вы начали чат');
-}
-
-function updateStatus(isOnline) {
-    const dot = document.getElementById('statusDot');
-    const text = document.getElementById('statusText');
-    
-    if (isOnline) {
-        dot.classList.add('online');
-        text.textContent = 'В сети';
-    } else {
-        dot.classList.remove('online');
-        text.textContent = 'Оффлайн';
-    }
-}
-
-// --- ОТПРАВКА И ПРИЁМ СООБЩЕНИЙ ---
-function sendMessage() {
-    const input = document.getElementById('messageInput');
-    const message = input.value.trim();
-    
-    if (!message || !currentConnection) return;
-
-    // 1. Отображаем сообщение у себя
-    appendMessageToUI(message, 'me');
-
-    // 2. Отправляем другу
-    currentConnection.send(message);
-
-    // 3. Обновляем историю чатов (последнее сообщение)
-    addToChatsHistory(currentFriendId, message);
-
-    input.value = '';
-}
-
-// Обработка нажатия Enter
-function handleKeyPress(event) {
-    if (event.key === 'Enter') {
-        sendMessage();
-    }
-}
-
-function receiveMessage(conn, data) {
-    // data — это текст сообщения
-    appendMessageToUI(data, 'friend');
-    addToChatsHistory(conn.peer, data); // Обновляем историю
-}
-
-function appendMessageToUI(text, sender) {
-    const messagesArea = document.getElementById('messagesArea');
-    const msgRow = document.createElement('div');
-    msgRow.className = `msg-row ${sender === 'me' ? 'my-msg' : 'friend-msg'}`;
-
-    const authorSpan = document.createElement('div');
-    authorSpan.className = 'msg-author';
-    authorSpan.textContent = sender === 'me' 
-        ? 'Вы' 
-        : `Друг (${currentFriendId})`;
-
-    const bubble = document.createElement('div');
-    bubble.className = 'bubble';
-    bubble.textContent = text;
-
-    msgRow.appendChild(authorSpan);
-    msgRow.appendChild(bubble);
-    messagesArea.appendChild(msgRow);
-
-    // Прокрутка вниз
-    messagesArea.scrollTop = messagesArea.scrollHeight;
-}
-
-// --- ИСТОРИЯ ЧАТОВ (СПИСОК СЛЕВА) ---
-function loadChatsHistory() {
-    const stored = localStorage.getItem('smax_chats');
-    chatsHistory = stored ? JSON.parse(stored) : [];
-    renderChatsList();
-}
-
-function addToChatsHistory(friendId, lastMessage) {
-    // Ищем существующий чат
-    const index = chatsHistory.findIndex(c => c.id === friendId);
-    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-    const entry = { id: friendId, lastMessage, time: now };
-
-    if (index > -1) {
-        // Обновляем существующий
-        chatsHistory[index] = entry;
-    } else {
-        // Добавляем новый
-        chatsHistory.unshift(entry); // Добавляем в начало
+    .app-title {
+        font-size: 20px;
     }
 
-    // Сохраняем
-    localStorage.setItem('smax_chats', JSON.stringify(chatsHistory));
-    renderChatsList();
-}
-
-function renderChatsList() {
-    const listContainer = document.getElementById('chatList');
-    listContainer.innerHTML = '';
-    const emptyMsg = document.getElementById('emptyChatList');
-
-    if (chatsHistory.length === 0) {
-        emptyMsg.style.display = 'block';
-        return;
+    .chat-item-info h5 {
+        font-size: 12px;
     }
-    emptyMsg.style.display = 'none';
 
-    chatsHistory.forEach((chat) => {
-        const item = document.createElement('div');
-        item.className = 'chat-item';
-        item.onclick = () => openChatWith(chat.id);
-
-        item.innerHTML = `
-            <img src="https://via.placeholder.com/40" class="chat-item-avatar" alt="Avatar">
-            <div class="chat-item-info">
-                <h5>Друг (${chat.id.substring(0, 8)}...)</h5>
-                <p>${chat.lastMessage}</p>
-            </div>
-        `;
-        listContainer.appendChild(item);
-    });
-}
-
-function openChatWith(friendId) {
-    // Если уже в чате с этим человеком — ничего не делаем
-    if (currentFriendId === friendId) return;
-
-    // Создаем новое соединение
-    const conn = myPeer.connect(friendId);
-    
-    conn.on('open', () => {
-        currentConnection = conn;
-        currentFriendId = friendId;
-        startChatSession(conn);
-        conn.on('data', (data) => receiveMessage(conn, data));
-    });
-
-    conn.on('error', (err) => {
-        alert('Не удалось открыть чат. Возможно, друг оффлайн.');
-    });
-}
-
-// Кнопка "Назад" в список чатов (можно добавить кнопку в UI, если нужно)
-function goBackToChats() {
-    currentConnection = null;
-    currentFriendId = null;
-    document.getElementById('appContainer').classList.remove('chat-active');
-    updateStatus(false);
-    document.getElementById('messagesArea').innerHTML = ''; // Очистить чат
+    .chat-item-info p {
+        font-size: 10px;
+    }
 }
