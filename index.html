@@ -244,18 +244,15 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRsY2x3emJ0am94c2NjbGdvZnVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDY4MTAwMDAsImV4cCI6MjAxMzgxMDAwMH0.3vX7R6_j-rYw-v_T7uW7-J1L8-A1L8-B2L8-C3L8';
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        // Создаем и слушаем онлайн-комнату через технологию Broadcast
         const channel = supabaseClient.channel('smax_room_777');
 
         channel.on('broadcast', { event: 'shout' }, payload => {
             const data = payload.payload;
-            const isMe = data.sender === myId;addMessageToScreen(isMe ? 'Вы' : 'Друг', data.text, isMe ? 'my-msg' : 'friend-msg');
-        })
-        .subscribe(status => {
-            if (status === 'SUBSCRIBED') {
-                console.log('Подключено к онлайн сети!');
+            // Код выведет сообщение друга только если ID отправителя отличается от вашего
+            if (data.sender !== myId) {addMessageToScreen('Друг', data.text, 'friend-msg');
             }
-        });
+        })
+        .subscribe();
 
         function addMessageToScreen(author, text, className) {
             const row = document.createElement('div');
@@ -272,7 +269,10 @@
             const text = msgInput.value.trim();
             if (!text) return;
 
-            // Мгновенно отправляем сообщение в эфир для себя и друга
+            // 1. Мгновенно рисуем сообщение у себя на экране (Вы)
+            addMessageToScreen('Вы', text, 'my-msg');
+
+            // 2. Отправляем в эфир для друга
             channel.send({
                 type: 'broadcast',
                 event: 'shout',
