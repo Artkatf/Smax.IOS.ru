@@ -2,85 +2,90 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smax Messenger</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMAX Messenger</title>
     <!-- Подключаем стили -->
     <link rel="stylesheet" href="style.css">
-    <!-- Подключаем библиотеку PeerJS для P2P -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
+    <!-- ВАЖНО: Подключаем PeerJS -->
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
 
-    <!-- ЭКРАН АВТОРИЗАЦИИ / АНКЕТЫ -->
+    <!-- ЭКРАН АВТОРИЗАЦИИ -->
     <div id="authScreen" class="auth-screen">
-        <div class="auth-title">Smax Messenger</div>
+        <h2 class="auth-title">Добро пожаловать</h2>
         
-        <div class="avatar-picker" onclick="document.getElementById('avatarFile').click()">
+        <div class="avatar-picker" onclick="document.getElementById('avatarInput').click()">
             <img id="avatarPreview" src="" style="display:none;">
-            <span id="avatarPlaceholder">Выбрать аватар</span>
+            <span>Нажмите для фото</span>
         </div>
-        <input type="file" id="avatarFile" accept="image/*" style="display: none;" onchange="previewAvatar(this)">
+        <input type="file" id="avatarInput" accept="image/*" style="display: none;" onchange="previewAvatar(this)">
 
-        <input type="text" id="firstNameInput" class="auth-input" placeholder="Введите Имя">
-        <input type="text" id="lastNameInput" class="auth-input" placeholder="Введите Фамилию">
+        <!-- Вертикальная форма -->
+        <input type="text" id="firstNameInput" class="auth-input" placeholder="Ваше имя">
+        <input type="text" id="lastNameInput" class="auth-input" placeholder="Ваша фамилия">
         
-        <div class="id-container-box" id="myIdPreviewBox">ID: генерируется...</div>
+        <button onclick="saveProfile()" class="auth-btn">Войти и получить ID</button>
 
-        <button class="auth-btn" onclick="saveProfile()">Авторизоваться</button>
+        <div id="myIdPreviewBox" class="id-container-box" style="margin-top: 15px; display: none;">
+            Ваш ID: <strong id="generatedIdDisplay"></strong>
+        </div>
     </div>
 
-    <!-- ГЛАВНЫЙ ИНТЕРФЕЙС ПРИЛОЖЕНИЯ -->
+    <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ -->
     <div id="appContainer" class="app-container">
         
-        <!-- ЛЕВАЯ ПАНЕЛЬ (СПИСОК ЧАТОВ + ПРОФИЛЬ) -->
+        <!-- ЛЕВАЯ ПАНЕЛЬ: СПИСОК ЧАТОВ -->
         <div class="sidebar">
-            <div class="app-title">Smaxs</div>
+            <h3 class="app-title">Чаты</h3>
             
             <div class="my-profile-card">
-                <img id="myAvatar" class="profile-img" src="" alt="Avatar">
+                <img src="" id="myAvatar" class="profile-img" alt="Avatar">
                 <div class="profile-info">
-                    <h4 id="myFullNameDisplay">Имя Фамилия</h4>
-                    <p id="myIdDisplay">ID: ...</p>
-                    <button class="edit-profile-btn" onclick="openProfileEdit()">Редактировать профиль</button>
+                    <h4 id="myFullNameDisplay"></h4>
+                    <p id="myIdDisplay"></p>
                 </div>
             </div>
 
-            <!-- Список чатов (заглушка, пока пустой) -->
-            <div id="chatListContainer" style="margin-top: 20px;">
-                <h5 style="color: var(--text-muted); margin-bottom: 10px;">Ваши чаты:</h5>
-                <div id="chatList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+            <div id="chatListContainer">
+                <div id="emptyChatList" style="color: var(--text-muted); margin-top: 20px; text-align: center;">
+                    Пока нет чатов
+                </div>
+                <div id="chatList"></div>
             </div>
 
             <div class="search-friend-box">
-                <div class="search-label">Найти друга по ID:</div>
-                <input type="text" id="friendIdInput" class="auth-input" placeholder="Вставьте ID друга">
-                <button class="auth-btn" style="padding: 10px; font-size: 14px; margin: 0;" onclick="connectToFriend()">Найти и написать</button>
+                <div class="search-label">Найти друга по ID</div>
+                <input type="text" id="friendIdInput" class="auth-input" placeholder="Введите 5 цифр">
+                <button onclick="connectToFriend()" class="auth-btn" style="margin-top: 10px; font-size: 14px;">Найти и написать</button>
             </div>
         </div>
 
-        <!-- ОКНО ЧАТА (СПРАВА) -->
+        <!-- ПРАВАЯ ПАНЕЛЬ: ЧАТ -->
         <div class="chat-stage">
             <div class="chat-header">
-                <div class="chat-title" id="chatWithTitle">Ожидание собеседника...</div>
+                <!-- Кнопка "Назад", если мы в чате -->
+                <button id="backBtn" onclick="goBackToChats()" style="background:none; border:none; color:#fff; cursor:pointer; font-size:18px; display:none;">←</button>
+                
+                <div class="chat-title" id="chatWithTitle">Выберите чат слева</div>
+                
                 <div class="status-block">
-                    <div id="statusDot" class="status-dot"></div>
-                    <span id="statusText">Сеть</span>
+                    <span id="statusText">Оффлайн</span>
+                    <div class="status-dot" id="statusDot"></div>
                 </div>
             </div>
 
-            <!-- ЗОНА ДЛЯ ВЫВОДА СООБЩЕНИЙ -->
-            <div class="messages-area" id="messagesArea"></div>
+            <div id="messagesArea" class="messages-area"></div>
 
             <div class="input-bar">
                 <div class="input-wrapper">
-                    <input type="text" id="messageInput" placeholder="Ваше сообщение..." onkeypress="handleKeyPress(event)">
-                    <button class="send-btn" onclick="sendMessage()">Отправить</button>
+                    <input type="text" id="messageInput" class="auth-input" placeholder="Напишите сообщение..." onkeypress="handleKeyPress(event)">
+                    <button onclick="sendMessage()" class="send-btn">Отправить</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Подключаем логику -->
     <script src="script.js"></script>
 </body>
 </html>
