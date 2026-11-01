@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Smax</title>
-    <!-- Подключаем Firebase для мгновенного обмена сообщениями без сторонних сайтов -->
-    <script src="https://gstatic.com"></script>
-    <script src="https://gstatic.com"></script>
     <style>
         :root {
             --bg-dark: #0A0A0C;
@@ -114,7 +111,6 @@
             box-shadow: 0 0 8px var(--accent-green);
         }
 
-        /* Наша собственная зона сообщений */
         .messages-area {
             flex: 1;
             overflow-y: auto;
@@ -129,7 +125,9 @@
             flex-direction: column;
             max-width: 75%;
             width: fit-content;
-        }.msg-row.my-msg {
+        }
+
+        .msg-row.my-msg {
             align-self: flex-end;
         }
 
@@ -139,8 +137,7 @@
 
         .msg-author {
             font-size: 11px;
-            color: var(--text-muted);
-            margin-bottom: 4px;
+            color: var(--text-muted);margin-bottom: 4px;
             padding: 0 6px;
         }
 
@@ -167,7 +164,6 @@
             border: 1px solid var(--border-color);
         }
 
-        /* Наша панель ввода в стиле iOS */
         .input-bar {
             padding: 16px 20px;
             background-color: var(--bg-dark);
@@ -216,9 +212,9 @@
 
     <div class="sidebar">
         <div class="app-title">Smax</div>
-        <button class="menu-btn">🟢 Основная комната</button>
+        <button class="menu-btn">🟢 Локальный канал</button>
         <div style="margin-top: auto; font-size: 11px; color: var(--text-muted); text-align: center;">
-            Собственный P2P-канал
+            Интерфейс Smax Chat
         </div>
     </div>
 
@@ -227,72 +223,56 @@
             <div class="chat-title">Smax</div>
             <div class="status-block">
                 <div class="status-dot"></div>
-                <span style="color: var(--text-muted);" id="user-status">Подключение...</span>
+                <span style="color: var(--text-muted);">Активен</span>
             </div>
         </div>
         
-        <!-- Чистое окно диалога -->
         <div class="messages-area" id="msg-box">
             <div class="msg-row friend-msg">
                 <div class="msg-author">Система</div>
-                <div class="bubble">Добро пожаловать в Smax! Напишите первое сообщение ниже, чтобы начать диалог.</div>
+                <div class="bubble">Добро пожаловать в Smax! Локальный код активирован. Теперь сообщения выводятся мгновенно.</div>
             </div>
         </div>
 
         <div class="input-bar">
             <div class="input-wrapper">
-                <input type="text" id="msg-input" placeholder="Введите сообщение...">
+                <input type="text" id="msg-input" placeholder="Введите сообщение..." autofocus>
                 <button class="send-btn" id="send-click">Отправить</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Подключаем общую свободную базу данных для мгновенного теста переписки
-        const config = { databaseURL: "https://firebaseio.com" };
-        firebase.initializeApp(config);
-        const db = firebase.database().ref("global_messages");
-
-        // Генерируем случайный ник для сессии (или пусть пользователь будет 'Я')
-        const myName = "Пользователь_" + Math.floor(Math.random() * 900 + 100);
-        document.getElementById('user-status').innerText = "Онлайн";
-
         const msgBox = document.getElementById('msg-box');
-        const msgInput = document.getElementById('msg-input');const sendClick = document.getElementById('send-click');
+        const msgInput = document.getElementById('msg-input');
+        const sendClick = document.getElementById('send-click');
 
-        // Отправка сообщений в общую базу данных
-        function pushMessage() {
+        // Прямой вывод сообщений на экран без использования заблокированных внешних баз
+        function handleSend() {
             const text = msgInput.value.trim();
             if (!text) return;
 
-            db.push({
-                user: myName,
-                text: text,
-                time: Date.now()
-            });
-            msgInput.value = '';
-        }
-
-        // Слушаем базу данных и мгновенно выводим сообщения на экран
-        db.limitToLast(50).on('child_added', (snapshot) => {
-            const data = snapshot.val();
-            const isMe = data.user === myName;
-            
             const row = document.createElement('div');
-            row.classList.add('msg-row', isMe ? 'my-msg' : 'friend-msg');
+            row.classList.add('msg-row', 'my-msg');
             
             row.innerHTML = `
-                <div class="msg-author">${isMe ? 'Вы' : data.user}</div>
-                <div class="bubble">${data.text}</div>
+                <div class="msg-author">Вы</div>
+                <div class="bubble">${text}</div>
             `;
             
             msgBox.appendChild(row);
+            msgInput.value = '';
             msgBox.scrollTop = msgBox.scrollHeight;
-        });
+        }
 
-        sendClick.addEventListener('click', pushMessage);
-        msgInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') pushMessage();
+        // Привязываем клик мышки
+        sendClick.addEventListener('click', handleSend);
+
+        // Привязываем нажатие кнопки EntermsgInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Защита от перезагрузки формы
+                handleSend();
+            }
         });
     </script>
 
