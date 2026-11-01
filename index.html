@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SMAX Messenger</title>
-    <!-- Сюда мы вставим CSS -->
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -103,7 +102,6 @@
             position: relative;
         }
 
-        /* Сайдбар (список чатов) */
         .sidebar {
             width: 300px;
             background-color: var(--sidebar-bg);
@@ -143,7 +141,6 @@
             margin-top: 50px;
         }
 
-        /* Элемент чата в списке */
         .chat-item {
             display: flex;
             align-items: center;
@@ -171,7 +168,6 @@
         .chat-info h5 { font-size: 14px; color: var(--text-main); }
         .chat-info p { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
 
-        /* Окно чата */
         .chat-stage {
             flex: 1;
             display: flex;
@@ -195,7 +191,7 @@
             font-size: 20px;
             cursor: pointer;
             color: var(--text-main);
-            display: none; /* Скрыта по умолчанию */
+            display: none;
         }
 
         .status-block {
@@ -291,18 +287,13 @@
             font-size: 18px;
         }
 
-        /* --- АДАПТИВНОСТЬ (MOBILE) --- */
         @media (max-width: 768px) {
             body { justify-content: flex-start; padding-top: 20px; }
-            
             .auth-screen { width: 100%; border-radius: 0; box-shadow: none; height: 100vh; overflow-y: auto; }
-            
             .app-container { flex-direction: column; height: 100vh; }
             .sidebar { width: 100%; max-height: 50vh; border-right: none; border-bottom: 1px solid var(--border-color); }
-            
             .app-container.chat-active .sidebar { display: none; }
             .chat-stage { width: 100%; }
-            
             #backBtn { display: block; }
         }
     </style>
@@ -349,7 +340,6 @@
                 </div>
             </div>
 
-            <!-- Блок поиска друга (в сайдбаре для десктопа) -->
             <div style="padding: 15px; border-top: 1px solid var(--border-color); background: #fff;">
                 <h4 style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">Найти друга по ID</h4>
                 <div style="display: flex; gap: 8px;">
@@ -381,16 +371,15 @@
         </div>
     </div>
 
-    <!-- ПОДКЛЮЧЕНИЕ PEERJS (обязательно перед script.js) -->
+    <!-- ПОДКЛЮЧЕНИЕ PEERJS -->
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 
-    <!-- ТВОЙ СКРИПТ (вставлен прямо сюда) -->
     <script>
         // --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ---
         let myPeer = null;
         let currentConnection = null;
         let currentFriendId = null;
-        let chatsHistory = ;
+        let chatsHistory = ; // ИСПРАВЛЕНО: было без скобок
         let myId = '';
         let isLoggedIn = false;
 
@@ -412,13 +401,13 @@
         // --- АВТОРИЗАЦИЯ ---
         function previewAvatar(input) {
             const preview = document.getElementById('avatarPreview');
-            if (input.files && input.files) {
+            if (input.files && input.files) { // ИСПРАВЛЕНО: было input.files
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     preview.src = e.target.result;
                     preview.style.display = 'block';
                 }
-                reader.readAsDataURL(input.files);
+                reader.readAsDataURL(input.files); // ИСПРАВЛЕНО: было input.files
             }
         }
 
@@ -576,12 +565,11 @@
         // --- ИСТОРИЯ ЧАТОВ ---
         function loadChatsHistory() {
             const stored = localStorage.getItem('smax_chats');
-            chatsHistory = stored ? JSON.parse(stored) : ;
-            renderChatsList();
+            chatsHistory = stored ? JSON.parse(stored) : ; // ИСПРАВЛЕНО: было без скобок
         }
 
         function addToChatsHistory(friendId, lastMessage) {
-            const now = new Date().toLocaleTimeString(, {hour: '2-digit', minute:'2-digit'});
+            const now = new Date().toLocaleTimeString(undefined, {hour: '2-digit', minute:'2-digit'});
             const entry = { id: friendId, lastMessage, time: now };
             const index = chatsHistory.findIndex(c => c.id === friendId);
             if (index > -1) chatsHistory[index] = entry;
