@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Smax</title>
-    <!-- Подключаем надежную сеть для передачи сообщений в реальном времени -->
-    <script src="https://pubnub.com"></script>
+
+    <!-- ========================================== -->
+    <!-- ЧАСТЬ 1: СТИЛИ (ВНЕШНИЙ ВИД САЙТА)       -->
+    <!-- ========================================== -->
     <style>
         :root {
             --bg-dark: #0A0A0C;
@@ -34,6 +36,7 @@
             overflow: hidden;
         }
 
+        /* Сайдбар */
         .sidebar {
             width: 280px;
             background-color: var(--panel-dark);
@@ -54,15 +57,6 @@
             display: inline-block;
         }
 
-        .chat-title {
-            font-size: 18px;
-            font-weight: 700;
-            background: linear-gradient(to right, var(--accent-green) 0%, var(--accent-green) 25%, var(--text-main) 25%, var(--text-main) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            display: inline-block;
-        }
-
         .menu-btn {
             background: rgba(16, 185, 129, 0.1);
             border: 1px solid var(--accent-green);
@@ -74,6 +68,7 @@
             font-weight: 500;
         }
 
+        /* Главный экран */
         .chat-stage {
             flex: 1;
             display: flex;
@@ -105,6 +100,7 @@
             box-shadow: 0 0 8px var(--accent-green);
         }
 
+        /* Сообщения */
         .messages-area {
             flex: 1;
             overflow-y: auto;
@@ -135,7 +131,8 @@
         .bubble {
             padding: 12px 16px;
             border-radius: 18px;
-            font-size: 15px;line-height: 1.4;
+            font-size: 15px;
+            line-height: 1.4;
             word-break: break-word;
         }
 
@@ -143,15 +140,14 @@
             background-color: var(--bubble-user);
             color: #fff;
             border-bottom-right-radius: 4px;
-        }
-
-        .friend-msg .bubble {
+        }.friend-msg .bubble {
             background-color: var(--bubble-friend);
             color: var(--text-main);
             border-bottom-left-radius: 4px;
             border: 1px solid var(--border-color);
         }
 
+        /* Поле ввода */
         .input-bar {
             padding: 16px 20px;
             background-color: var(--bg-dark);
@@ -198,11 +194,14 @@
 </head>
 <body>
 
+    <!-- ========================================== -->
+    <!-- ЧАСТЬ 2: СТРУКТУРА (ЭЛЕМЕНТЫ ИНТЕРФЕЙСА)   -->
+    <!-- ========================================== -->
     <div class="sidebar">
         <div class="app-title">Smax</div>
         <button class="menu-btn">🟢 Smax Комната</button>
         <div style="margin-top: auto; font-size: 11px; color: var(--text-muted); text-align: center;">
-            Режим: Онлайн
+            Автономный код v2.1
         </div>
     </div>
 
@@ -211,15 +210,12 @@
             <div class="chat-title">Smax</div>
             <div class="status-block">
                 <div class="status-dot"></div>
-                <span style="color: var(--text-muted);" id="online-status">Сеть активна</span>
+                <span style="color: var(--text-muted);">Активен</span>
             </div>
         </div>
         
         <div class="messages-area" id="msg-box">
-            <div class="msg-row friend-msg">
-                <div class="msg-author">Система</div>
-                <div class="bubble">Онлайн-режим запущен! Скиньте чистую ссылку на этот сайт другу, и вы сможете общаться в реальном времени.</div>
-            </div>
+            <!-- Место для отображения диалогов -->
         </div>
 
         <div class="input-bar">
@@ -230,68 +226,72 @@
         </div>
     </div>
 
+    <!-- ========================================== -->
+    <!-- ЧАСТЬ 3: СКРИПТ (РАБОТА КНОПОК И СВЯЗИ)   -->
+    <!-- ========================================== -->
     <script>
         const msgBox = document.getElementById('msg-box');
         const msgInput = document.getElementById('msg-input');
         const sendClick = document.getElementById('send-click');
 
-        // Создаем случайный уникальный ID для вашей сессии (чтобы код понимал, кто "Вы", а кто "Друг")
-        const myUserId = "user_" + Math.floor(Math.random() * 100000);
-
-        // Подключаем бесплатные ключи связи
-        const pubnub = new PubNub({
-            publishKey: 'pub-c-49bb2fa7-7c15-4fa7-9577-bd7efd373307',
-            subscribeKey: 'sub-c-0c8da94e-d635-429a-ae57-55c4d5162ffb',
-            userId: myUserId
-        });
-
-        // Название вашей секретной комнаты связи (можете изменить на любое свое)
-        const channelName = 'smax_private_room_art';
-
-        // Слушаем входящие сообщения в реальном времени
-        pubnub.addListener({
-            message: function(event) {
-                const data = event.message;
-                const isMe = data.senderId === myUserId;
-                
-                // Добавляем сообщение на экран
-                const row = document.createElement('div');row.classList.add('msg-row', isMe ? 'my-msg' : 'friend-msg');
-                row.innerHTML = `
-                    <div class="msg-author">${isMe ? 'Вы' : 'Друг'}</div>
-                    <div class="bubble">${data.text}</div>
-                `;
-                msgBox.appendChild(row);
-                msgBox.scrollTop = msgBox.scrollHeight;
+        // Загрузка сообщений из адресной строки, если они есть
+        function loadHistory() {
+            const params = new URLSearchParams(window.location.search);
+            const history = params.get('chat');
+            if (history) {
+                const messages = history.split('||');
+                messages.forEach(m => {
+                    if(!m) return;
+                    const data = m.split('::');
+                    const sender = data[0];
+                    const text = decodeURIComponent(data[1]);
+                    addMessageToScreen(sender === 'me' ? 'Вы' : 'Друг', text, sender === 'me' ? 'my-msg' : 'friend-msg');
+                });
+            } else {
+                addMessageToScreen('Система', 'Добро пожаловать в Smax! Напишите текст и нажмите Отправить.', 'friend-msg');
             }
-        });
+        }
 
-        // Подключаемся к комнате
-        pubnub.subscribe({
-            channels: [channelName]
-        });
+        // Вывод облачка текста на экран ноутбука/смартфона
+        function addMessageToScreen(author, text, className) {
+            const row = document.createElement('div');
+            row.classList.add('msg-row', className);row.innerHTML = `
+                <div class="msg-author">${author}</div>
+                <div class="bubble">${text}</div>
+            `;
+            msgBox.appendChild(row);
+            msgBox.scrollTop = msgBox.scrollHeight;
+        }
 
-        // Функция отправки букв на сервер
+        // Логика нажатия отправки
         function sendMessage() {
             const text = msgInput.value.trim();
             if (!text) return;
 
-            pubnub.publish({
-                channel: channelName,
-                message: {
-                    senderId: myUserId,
-                    text: text
-                }
-            });
+            addMessageToScreen('Вы', text, 'my-msg');
+
+            const params = new URLSearchParams(window.location.search);
+            let currentChat = params.get('chat') || '';
+            currentChat += (currentChat ? '||' : '') + 'friend::' + encodeURIComponent(text);
+            
+            const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?chat=' + currentChat;
+            window.history.pushState({path:newUrl}, '', newUrl);
 
             msgInput.value = '';
         }
 
-        sendClick.onclick = sendMessage;
+        // Активация событий на клик и на клавишу Enter
+        sendClick.onclick = function() {
+            sendMessage();
+        };
+
         msgInput.onkeydown = function(event) {
             if (event.key === 'Enter') {
                 sendMessage();
             }
         };
+
+        window.onload = loadHistory;
     </script>
 
 </body>
