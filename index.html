@@ -379,7 +379,7 @@
         let myPeer = null;
         let currentConnection = null;
         let currentFriendId = null;
-        let chatsHistory = ; // ИСПРАВЛЕНО: теперь массив инициализирован корректно
+        let chatsHistory = ; // ИСПРАВЛЕНО: теперь это пустой массив, а не ошибка
         let myId = '';
         let isLoggedIn = false;
 
@@ -401,13 +401,13 @@
         // --- АВТОРИЗАЦИЯ ---
         function previewAvatar(input) {
             const preview = document.getElementById('avatarPreview');
-            if (input.files && input.files.length > 0) { // ИСПРАВЛЕНО: проверка длины массива
+            if (input.files && input.files) { // ИСПРАВЛЕНО: проверка на существование первого файла
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     preview.src = e.target.result;
                     preview.style.display = 'block';
                 }
-                reader.readAsDataURL(input.files); // ИСПРАВЛЕНО: доступ к первому файлу
+                reader.readAsDataURL(input.files); // ИСПРАВЛЕНО: берем именно первый файл
             }
         }
 
