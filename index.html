@@ -4,25 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Smax Messenger</title>
-    <!-- Подключаем надежную открытую систему доставки онлайн-сообщений -->
+    <!-- Подключение библиотеки онлайн-пересылки сообщений -->
     <script src="https://ably.com"></script>
+
     <style>
         :root {
             --bg-dark: #0A0A0C;
             --panel-dark: #161618;
-            --accent-green: #10B981;
-            --bubble-user: #059669;
-            --bubble-friend: #222224;
+            --accent-green: #10B981;       /* Неоново-зеленый цвет */
+            --bubble-user: #059669;        /* Ваши сообщения */
+            --bubble-friend: #222224;      /* Сообщения друга */
             --text-main: #F4F4F5;
             --text-muted: #A1A1AA;
             --border-color: #27272A;
         }
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             letter-spacing: -0.5px;
         }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-dark);
@@ -33,6 +36,8 @@
             justify-content: center;
             align-items: center;
         }
+
+        /* Экран авторизации / Анкеты */
         .auth-screen {
             background-color: var(--panel-dark);
             border: 1px solid var(--border-color);
@@ -44,6 +49,7 @@
             display: none;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
+
         .auth-title {
             font-size: 26px;
             font-weight: 800;
@@ -52,6 +58,7 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+
         .avatar-picker {
             width: 90px;
             height: 90px;
@@ -66,16 +73,19 @@
             overflow: hidden;
             position: relative;
         }
+
         .avatar-picker img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
+
         .avatar-picker span {
             font-size: 12px;
             color: var(--accent-green);
             padding: 5px;
         }
+
         .auth-input {
             width: 100%;
             background-color: var(--bg-dark);
@@ -87,9 +97,26 @@
             margin-bottom: 12px;
             outline: none;
         }
+
         .auth-input:focus {
             border-color: var(--accent-green);
         }
+
+        /* Окошко с вашим персональным ID */
+        .id-container-box {
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            font-family: monospace;
+            font-size: 13px;
+            color: var(--accent-green);
+            margin-bottom: 15px;
+            word-break: break-all;
+            user-select: all;
+            text-align: center;
+        }
+
         .auth-btn {
             width: 100%;
             background-color: var(--accent-green);
@@ -101,73 +128,109 @@
             font-weight: 600;
             cursor: pointer;
             margin-top: 10px;
+            transition: opacity 0.2s;
         }
-        .app-container {
+
+        .auth-btn:hover { opacity: 0.9; }
+
+        /* Главное окно приложения */.app-container {
             width: 100%;
             height: 100vh;
             display: none;
         }
+
+        /* Левая панель с вашими данными */
         .sidebar {
-            width: 300px;
+            width: 320px;
             background-color: var(--panel-dark);
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             padding: 20px 15px;
         }
+
         .app-title {
             font-size: 24px;
             font-weight: 800;
             margin-bottom: 24px;
-            background: linear-gradient(to right, var(--accent-green) 0%, var(--accent-green) 22%, var(--text-main) 22%, var(--text-main) 100%);
+            background: linear-gradient(to right, var(--accent-green) 0%, var(--accent-green) 35%, var(--text-main) 35%, var(--text-main) 100%);
             -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;display: inline-block;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
         }
+
         .my-profile-card {
             display: flex;
             align-items: center;
             gap: 12px;
-            background: rgba(255,255,255,0.03);
+            background: rgba(255,255,255,0.02);
             padding: 12px;
             border-radius: 16px;
             border: 1px solid var(--border-color);
             margin-bottom: 20px;
         }
+
         .profile-img {
-            width: 45px;
-            height: 45px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             object-fit: cover;
-            background-color: #333;
+            background-color: #222;
         }
+
+        .profile-info {
+            flex: 1;
+            overflow: hidden;
+        }
+
         .profile-info h4 {
             font-size: 14px;
             font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
+
         .profile-info p {
+            color: var(--accent-green);
             font-size: 11px;
+            font-weight: 700;
+            margin-top: 2px;
+        }
+
+        .edit-profile-btn {
+            background: none;
+            border: none;
             color: var(--text-muted);
+            cursor: pointer;
+            font-size: 11px;
+            text-decoration: underline;
+            margin-top: 4px;
+            display: block;
         }
+
+        /* Поле поиска друга внизу панели */
         .search-friend-box {
-            margin-bottom: 15px;
+            margin-top: auto; 
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px;
         }
+
         .search-label {
             font-size: 12px;
             color: var(--text-muted);
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             padding-left: 4px;
         }
-        .start-chat-btn {
-            padding: 10px;
-            font-size: 14px;
-            margin: 0;
-        }
+
+        /* Правая часть - Экран чата */
         .chat-stage {
             flex: 1;
             display: flex;
             flex-direction: column;
             background-color: var(--bg-dark);
         }
+
         .chat-header {
             height: 60px;
             border-bottom: 1px solid var(--border-color);
@@ -176,17 +239,20 @@
             justify-content: space-between;
             padding: 0 24px;
         }
+
         .chat-title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 700;
         }
+
         .status-block {
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-muted);
         }
+
         .status-dot {
             width: 8px;
             height: 8px;
@@ -195,10 +261,13 @@
             box-shadow: 0 0 8px #ef4444;
             transition: all 0.3s;
         }
+
         .status-dot.online {
             background-color: var(--accent-green);
             box-shadow: 0 0 8px var(--accent-green);
         }
+
+        /* Сообщения */
         .messages-area {
             flex: 1;
             overflow-y: auto;
@@ -207,21 +276,23 @@
             flex-direction: column;
             gap: 12px;
         }
+
         .msg-row {
             display: flex;
             flex-direction: column;
             max-width: 75%;
             width: fit-content;
         }
+
         .msg-row.my-msg { align-self: flex-end; }
-        .msg-row.friend-msg { align-self: flex-start; }
-        .msg-author {
+        .msg-row.friend-msg { align-self: flex-start; }.msg-author {
             font-size: 11px;
             color: var(--text-muted);
             margin-bottom: 4px;
             padding: 0 6px;
         }
         .my-msg .msg-author { text-align: right; }
+
         .bubble {
             padding: 12px 16px;
             border-radius: 18px;
@@ -229,28 +300,34 @@
             line-height: 1.4;
             word-break: break-word;
         }
+
         .my-msg .bubble {
             background-color: var(--bubble-user);
             color: #fff;
             border-bottom-right-radius: 4px;
         }
+
         .friend-msg .bubble {
             background-color: var(--bubble-friend);
             color: var(--text-main);
             border-bottom-left-radius: 4px;
             border: 1px solid var(--border-color);
         }
+
+        /* Ввод сообщений */
         .input-bar {
             padding: 16px 20px;
             background-color: var(--bg-dark);
             border-top: 1px solid var(--border-color);
         }
+
         .input-wrapper {
             width: 100%;
             display: flex;
             align-items: center;
             gap: 10px;
         }
+
         .input-wrapper input {
             flex: 1;
             background-color: var(--panel-dark);
@@ -260,9 +337,12 @@
             color: var(--text-main);
             font-size: 15px;
             outline: none;
-        }.input-wrapper input:focus {
+        }
+
+        .input-wrapper input:focus {
             border-color: var(--accent-green);
         }
+
         .send-btn {
             background-color: var(--accent-green);
             border: none;
@@ -273,208 +353,294 @@
             cursor: pointer;
             font-size: 14px;
         }
+
+        /* Адаптивность для экранов мобильных */
         @media (max-width: 768px) {
-            .sidebar { width: 100%; }
-            .app-container.chat-active .sidebar { display: none; }
-            .app-container:not(.chat-active) .chat-stage { display: none; }
-        }
-    </style>
-</head><body>
+            .sidebar { width: 100%; }.app-container.chat-active .sidebar { display: none; }
+.app-container:not(.chat-active) .chat-stage { display: none; }
+}<body>
 
-    <!-- Форма создания профиля (Вход) -->
-    <div class="auth-screen" id="auth-block">
-        <div class="auth-title">Создание профиля Smax</div>
+    <!-- ЭКРАН НАСТРОЕК ПРОФИЛЯ -->
+    <div id="authScreen" class="auth-screen">
+        <div class="auth-title">Smax Messenger</div>
         
-        <div class="avatar-picker" id="avatar-zone">
-            <img id="avatar-preview" src="" style="display:none;">
-            <span id="avatar-text">Добавить фото</span>
+        <div class="avatar-picker" onclick="document.getElementById('avatarFile').click()">
+            <img id="avatarPreview" src="" style="display:none;">
+            <span id="avatarPlaceholder">Выбрать аватар</span>
         </div>
-        <input type="file" id="avatar-file" accept="image/*" style="display:none;">
+        <input type="file" id="avatarFile" accept="image/*" style="display: none;" onchange="previewAvatar(this)">
 
-        <input type="text" id="reg-name" class="auth-input" placeholder="Имя">
-        <input type="text" id="reg-surname" class="auth-input" placeholder="Фамилия">
-        <input type="tel" id="reg-phone" class="auth-input" placeholder="Номер телефона (например: 79991112233)">
+        <input type="text" id="firstNameInput" class="auth-input" placeholder="Введите Имя">
+        <input type="text" id="lastNameInput" class="auth-input" placeholder="Введите Фамилию">
         
-        <button class="auth-btn" id="auth-submit-btn">Войти в мессенджер</button>
+        <div class="id-container-box" id="myIdPreviewBox">ID: генерируется...</div>
+
+        <button class="auth-btn" onclick="saveProfile()">Сохранить</button>
     </div>
 
-    <!-- Главный рабочий экран -->
-    <div class="app-container" id="app-block" style="display: flex;">
+    <!-- ГЛАВНЫЙ КОНТЕЙНЕР ПРИЛОЖЕНИЯ -->
+    <div id="appContainer" class="app-container">
+        
+        <!-- БОКОВОЕ МЕНЮ (СЛЕВА) -->
         <div class="sidebar">
-            <div class="app-title">Smax</div>
+            <div class="app-title">Smaxs</div>
             
             <div class="my-profile-card">
-                <img class="profile-img" id="my-avatar-img" src="">
+                <img id="myAvatar" class="profile-img" src="" alt="Avatar">
                 <div class="profile-info">
-                    <h4 id="my-full-name">Имя Фамилия</h4>
-                    <p id="my-phone-number">+7 (___) ___ - __ - __</p>
+                    <h4 id="myFullNameDisplay">Имя Фамилия</h4>
+                    <p id="myIdDisplay">ID: ...</p>
+                    <button class="edit-profile-btn" onclick="openProfileEdit()">Редактировать</button>
                 </div>
             </div>
 
             <div class="search-friend-box">
-                <p class="search-label">Открыть чат по номеру:</p>
-                <input type="tel" id="search-friend-phone" class="auth-input" placeholder="Номер друга (79990000000)">
-                <button class="auth-btn start-chat-btn" id="start-chat-click">Начать чат</button>
+                <div class="search-label">Найти друга по ID:</div>
+                <input type="text" id="friendIdInput" class="auth-input" placeholder="Вставьте ID друга">
+                <button class="auth-btn" style="padding: 10px; font-size: 14px; margin: 0;" onclick="connectToFriend()">Найти и написать</button>
             </div>
         </div>
 
+        <!-- ОКНО ЧАТА (СПРАВА) -->
         <div class="chat-stage">
             <div class="chat-header">
-                <div class="chat-title" id="active-chat-title">Чат не выбран</div>
+                <div class="chat-title" id="chatWithTitle">Ожидание собеседника...</div>
                 <div class="status-block">
-                    <div class="status-dot" id="dot"></div>
-                    <span id="status">Сеть</span>
+                    <div id="statusDot" class="status-dot"></div>
+                    <span id="statusText">Сеть</span>
                 </div>
             </div>
-            
-            <div class="messages-area" id="msg-box">
-                <div class="msg-row friend-msg">
-                    <div class="msg-author">Smax</div>
-                    <div class="bubble">Введите номер телефона вашего друга слева и нажмите «Начать чат», чтобы открыть мгновенный онлайн-канал связи.</div>
-                </div>
-            </div>
+
+            <!-- ЗОНА ДЛЯ ВЫВОДА СООБЩЕНИЙ -->
+            <div class="messages-area" id="messagesArea"></div>
 
             <div class="input-bar">
                 <div class="input-wrapper">
-                    <input type="text" id="msg-input" placeholder="Наберите текст..." autocomplete="off">
-                    <button class="send-btn" id="send-click">Отправить</button>
+                    <input type="text" id="messageInput" placeholder="Ваше сообщение..." onkeypress="handleKeyPress(event)">
+                    <button class="send-btn" onclick="sendMessage()">Отправить</button>
                 </div>
             </div>
         </div>
-    </div><script>
-        let myProfile = null;
-        let currentChannel = null;
-        let ably = null;
-        let avatarBase64 = "";
 
-        const authBlock = document.getElementById('auth-block');
-        const appBlock = document.getElementById('app-block');
-        const avatarZone = document.getElementById('avatar-zone');
-        const avatarFile = document.getElementById('avatar-file');
-        const avatarPreview = document.getElementById('avatar-preview');
-        const avatarText = document.getElementById('avatar-text');
-        const authSubmitBtn = document.getElementById('auth-submit-btn');
+    </div><!-- Подключаем библиотеку для связи без регистрации -->
+    <script src="https://unpkg.com"></script>
+    <script>
+        let peer;
+        let activeConn = null;
+        let myId = '';
+        let myProfile = { firstName: '', lastName: '', avatar: '' };
 
-        const myFullName = document.getElementById('my-full-name');
-        const myPhoneNumber = document.getElementById('my-phone-number');
-        const myAvatarImg = document.getElementById('my-avatar-img');
-
-        const searchFriendPhone = document.getElementById('search-friend-phone');
-        const startChatClick = document.getElementById('start-chat-click');
-        const activeChatTitle = document.getElementById('active-chat-title');
-
-        const msgBox = document.getElementById('msg-box');
-        const msgInput = document.getElementById('msg-input');
-        const sendClick = document.getElementById('send-click');
-        const dot = document.getElementById('dot');
-        const statusText = document.getElementById('status');
-
+        // Инициализация при открытии страницы браузера
         window.onload = function() {
-            const savedData = localStorage.getItem('smax_user_profile');
-            if (savedData) {
-                myProfile = JSON.parse(savedData);
-                initApp();
-            } else {
-                authBlock.style.display = 'block';
-                appBlock.style.display = 'none';
-            }
+            initIdentity();
+            loadProfileFromStorage();
         };
 
-        avatarZone.onclick = () => avatarFile.click();
-        avatarFile.onchange = (event) => {
-            const reader = new FileReader();
-            reader.onload = function() {
-                avatarBase64 = reader.result;
-                avatarPreview.src = avatarBase64;
-                avatarPreview.style.display = 'block';
-                avatarText.style.display = 'none';
-            };
-            reader.readAsDataURL(event.target.files);
-        };
-
-        authSubmitBtn.onclick = function saveProfile() {
-            const name = document.getElementById('reg-name').value.trim();
-            const surname = document.getElementById('reg-surname').value.trim();
-            const phone = document.getElementById('reg-phone').value.trim().replace(/\D/g, '');
-
-            if (!name || !surname || !phone) {
-                alert("Пожалуйста, заполните все поля профиля!");
-                return;
+        // Логика личного постоянного ID (сохраняется навсегда)
+        function initIdentity() {
+            let savedId = localStorage.getItem('smax_user_id');
+            if (!savedId) {
+                // Генерация случайного формата ID
+                savedId = 'smax-' + Math.random().toString(36).substr(2, 5);
+                localStorage.setItem('smax_user_id', savedId);
             }
-
-            myProfile = { name, surname, phone, avatar: avatarBase64 };
-            localStorage.setItem('smax_user_profile', JSON.stringify(myProfile));
-            initApp();
-        };
-
-        function initApp() {
-            authBlock.style.display = 'none';
-            appBlock.style.display = 'flex';
-
-            myFullName.innerText = `${myProfile.name} ${myProfile.surname}`;
-            myPhoneNumber.innerText = `+${myProfile.phone}`;
-            
-            if (myProfile.avatar) {
-                myAvatarImg.src = myProfile.avatar;
-            } else {
-                myAvatarImg.src = "https://w3schools.com";
-            }
-
-            ably = new Ably.Realtime({ key: '86Z_Bw.M6j6Sg:YqLgWwO0K4_bS86M4uO_S07M4uO_S07M4uO_S07M4uO_S07M4uO_S07M4uO_S07M' });
-            ably.connection.on('connected', () => {
-                dot.classList.add('online');
-                statusText.innerText = 'Онлайн';
-            });
+            myId = savedId;
+            document.getElementById('myIdPreviewBox').innerText = 'Ваш личный ID: ' + myId;
+            document.getElementById('myIdDisplay').innerText = 'ID: ' + myId;
         }
 
-        startChatClick.onclick = function startPrivateChat() {
-            const friendPhone = searchFriendPhone.value.trim().replace(/\D/g, '');
-            if (!friendPhone) {
-                alert("Введите корректный номер друга!");
-                return;
-            }
-
-            msgBox.innerHTML = '';
-            activeChatTitle.innerText = `Чат: +${friendPhone}`;appBlock.classList.add('chat-active');
-
-            const sortedNumbers = [myProfile.phone, friendPhone].sort();
-            const uniqueRoomId = `room_${sortedNumbers}_${sortedNumbers}`;
-
-            if (currentChannel) currentChannel.unsubscribe();
-            currentChannel = ably.channels.get(uniqueRoomId);
-
-            currentChannel.subscribe('message', (message) => {
-                const data = message.data;
-                const isMe = data.senderPhone === myProfile.phone;
+        // Загрузка сохраненных данных анкеты без сброса при обновлении
+        function loadProfileFromStorage() {
+            const savedProfile = localStorage.getItem('smax_profile_data');
+            if (savedProfile) {
+                myProfile = JSON.parse(savedProfile);
+                applyProfileToUI();
                 
-                const row = document.createElement('div');
-                row.classList.add('msg-row', isMe ? 'my-msg' : 'friend-msg');
-                row.innerHTML = `
-                    <div class="msg-author">${isMe ? 'Вы' : data.senderName}</div>
-                    <div class="bubble">${data.text}</div>
-                `;
-                msgBox.appendChild(row);
-                msgBox.scrollTop = msgBox.scrollHeight;
-            });
-        };
-
-        function sendMessage() {
-            const text = msgInput.value.trim();
-            if (!text || !currentChannel) return;
-
-            currentChannel.publish('message', {
-                senderPhone: myProfile.phone,
-                senderName: myProfile.name,
-                text: text
-            });
-
-            msgInput.value = '';
+                // Пропускаем экран входа, открываем мессенджер напрямую
+                document.getElementById('authScreen').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'flex';
+                initPeer();
+            } else {
+                // Если зашли в первый раз - просим заполнить анкету
+                document.getElementById('authScreen').style.display = 'block';
+            }
         }
 
-        sendClick.onclick = sendMessage;
-        msgInput.onkeydown = function(e) {
-            if (e.key === 'Enter') sendMessage();
-        };
+        // Создание визуального превью загруженной картинки-аватара
+        function previewAvatar(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('avatarPreview').src = e.target.result;
+                    document.getElementById('avatarPreview').style.display = 'block';
+                    document.getElementById('avatarPlaceholder').style.display = 'none';
+                    myProfile.avatar = e.target.result; 
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // Кнопка «Сохранить» данные в память
+        function saveProfile() {
+            const fName = document.getElementById('firstNameInput').value.trim();
+            const lName = document.getElementById('lastNameInput').value.trim();
+            
+            if (!fName || !lName) return alert('Заполните поля Имя и Фамилия!');
+            
+            myProfile.firstName = fName;
+            myProfile.lastName = lName;
+            
+            // Если аватарку не загрузили - ставим автоматическую заглушку-бота
+            if (!myProfile.avatar) {
+                myProfile.avatar = 'https://dicebear.com' + fName;
+            }
+
+            localStorage.setItem('smax_profile_data', JSON.stringify(myProfile));
+            applyProfileToUI();
+
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'flex';
+            
+            if (!peer) initPeer();
+        }
+
+        // Вывод данных профиля на боковую панель
+        function applyProfileToUI() {
+            document.getElementById('myAvatar').src = myProfile.avatar;
+            document.getElementById('myFullNameDisplay').innerText = `${myProfile.firstName} ${myProfile.lastName}`;
+            document.getElementById('firstNameInput').value = myProfile.firstName;
+            document.getElementById('lastNameInput').value = myProfile.lastName;
+            document.getElementById('avatarPreview').src = myProfile.avatar;document.getElementById('avatarPreview').style.display = 'block';
+            document.getElementById('avatarPlaceholder').style.display = 'none';
+        }
+
+        // Переключение обратно в режим редактирования
+        function openProfileEdit() {
+            document.getElementById('appContainer').style.display = 'none';
+            document.getElementById('authScreen').style.display = 'block';
+        }
+
+        // Инициализация свободного P2P соединения без ключей
+        function initPeer() {
+            peer = new Peer(myId);
+
+            peer.on('open', () => {
+                updateStatus(true, 'В сети');
+            });
+
+            // Слушаем входящие подключения от друзей
+            peer.on('connection', (conn) => {
+                setupConnection(conn);
+                // Запрашиваем имя друга, когда он подключился
+                setTimeout(() => {
+                    conn.send({ type: 'profile_request', name: myProfile.firstName });
+                }, 500);
+            });
+
+            peer.on('error', (err) => {
+                if(err.type === 'unavailable-id') {
+                    // Если ID занят, слегка меняем его
+                    myId += '-' + Math.floor(Math.random() * 100);
+                    initPeer();
+                } else {
+                    updateStatus(false, 'Ошибка');
+                }
+            });
+        }
+
+        function updateStatus(isOnline, textContent) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            if (isOnline) {
+                dot.classList.add('online');
+                text.innerText = textContent;
+            } else {
+                dot.classList.remove('online');
+                text.innerText = textContent;
+            }
+        }
+
+        // Поиск друга по его ID и прямое подключение
+        function connectToFriend() {
+            const friendId = document.getElementById('friendIdInput').value.trim();
+            if (!friendId) return alert('Введите ID друга!');
+            if (friendId === myId) return alert('Нельзя добавить свой собственный ID!');
+
+            updateStatus(false, 'Поиск друга...');
+            const conn = peer.connect(friendId);
+            setupConnection(conn);
+        }
+
+        // Настройка приема-передачи данных в активном чате
+        function setupConnection(conn) {
+            activeConn = conn;
+
+            activeConn.on('open', () => {
+                updateStatus(true, 'Чат активен');
+                document.getElementById('chatWithTitle').innerText = 'Загрузка собеседника...';
+                document.getElementById('messagesArea').innerHTML = ''; 
+                document.getElementById('appContainer').classList.add('chat-active');
+            });
+
+            // Слушаем пакеты данных
+            activeConn.on('data', (data) => {
+                if (data.type === 'msg') {
+                    appendMessage(data, false);
+                } else if (data.type === 'profile_request') {
+                    document.getElementById('chatWithTitle').innerText = 'Чат с: ' + data.name;
+                    activeConn.send({ type: 'profile_response', name: myProfile.firstName });
+                } else if (data.type === 'profile_response') {
+                    document.getElementById('chatWithTitle').innerText = 'Чат с: ' + data.name;
+                }
+            });
+
+            activeConn.on('close', () => {
+                updateStatus(true, 'В сети');
+                document.getElementById('chatWithTitle').innerText = 'Друг отключился';
+                activeConn = null;
+            });
+        }
+
+        // Функция отправки сообщений
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            if (!text || !activeConn) return;
+
+            const payload = {
+                type: 'msg',
+                senderName: myProfile.firstName,text: text
+            };
+
+            // Отправляем напрямую в телефон/ПК другу
+            activeConn.send(payload);
+            appendMessage(payload, true);
+            input.value = '';
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') sendMessage();
+        }
+
+        // Отрисовка сообщений на экране
+        function appendMessage(data, isMy) {
+            const area = document.getElementById('messagesArea');
+
+            const row = document.createElement('div');
+            row.className = `msg-row ${isMy ? 'my-msg' : 'friend-msg'}`;
+
+            row.innerHTML = `
+                <div class="msg-author">${isMy ? 'Вы' : data.senderName}</div>
+                <div class="bubble">${escapeHTML(data.text)}</div>
+            `;
+
+            area.appendChild(row);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
     </script>
 </body>
 </html>
