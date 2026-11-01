@@ -20,12 +20,11 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            -webkit-tap-highlight-color: transparent;
             letter-spacing: -0.5px;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--bg-dark);
             color: var(--text-main);
             display: flex;
@@ -68,12 +67,8 @@
             color: var(--text-main);
             padding: 14px;
             border-radius: 12px;
-            cursor: pointer;
-            text-align: left;
             font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            text-align: left;
             font-weight: 500;
         }
 
@@ -91,8 +86,6 @@
             align-items: center;
             justify-content: space-between;
             padding: 0 24px;
-            background-color: rgba(10, 10, 12, 0.8);
-            backdrop-filter: blur(10px);
         }
 
         .status-block {
@@ -100,7 +93,6 @@
             align-items: center;
             gap: 8px;
             font-size: 14px;
-            font-weight: 500;
         }
 
         .status-dot {
@@ -127,20 +119,15 @@
             width: fit-content;
         }
 
-        .msg-row.my-msg {
-            align-self: flex-end;
-        }
-
-        .msg-row.friend-msg {
-            align-self: flex-start;
-        }
+        .msg-row.my-msg { align-self: flex-end; }
+        .msg-row.friend-msg { align-self: flex-start; }
 
         .msg-author {
             font-size: 11px;
-            color: var(--text-muted);margin-bottom: 4px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
             padding: 0 6px;
         }
-
         .my-msg .msg-author { text-align: right; }
 
         .bubble {
@@ -151,8 +138,7 @@
             word-break: break-word;
         }
 
-        .my-msg .bubble {
-            background-color: var(--bubble-user);
+        .my-msg .bubble {background-color: var(--bubble-user);
             color: #fff;
             border-bottom-right-radius: 4px;
         }
@@ -164,6 +150,7 @@
             border: 1px solid var(--border-color);
         }
 
+        /* Форма отправки БЕЗ тега <form> чтобы исключить любые блокировки */
         .input-bar {
             padding: 16px 20px;
             background-color: var(--bg-dark);
@@ -212,9 +199,9 @@
 
     <div class="sidebar">
         <div class="app-title">Smax</div>
-        <button class="menu-btn">🟢 Локальный канал</button>
+        <button class="menu-btn">🟢 Smax Комната</button>
         <div style="margin-top: auto; font-size: 11px; color: var(--text-muted); text-align: center;">
-            Интерфейс Smax Chat
+            Автономный код v2.0
         </div>
     </div>
 
@@ -228,15 +215,12 @@
         </div>
         
         <div class="messages-area" id="msg-box">
-            <div class="msg-row friend-msg">
-                <div class="msg-author">Система</div>
-                <div class="bubble">Добро пожаловать в Smax! Локальный код активирован. Теперь сообщения выводятся мгновенно.</div>
-            </div>
+            <!-- Сюда будут падать сообщения -->
         </div>
 
         <div class="input-bar">
             <div class="input-wrapper">
-                <input type="text" id="msg-input" placeholder="Введите сообщение..." autofocus>
+                <input type="text" id="msg-input" placeholder="Наберите текст..." autocomplete="off">
                 <button class="send-btn" id="send-click">Отправить</button>
             </div>
         </div>
@@ -247,33 +231,65 @@
         const msgInput = document.getElementById('msg-input');
         const sendClick = document.getElementById('send-click');
 
-        // Прямой вывод сообщений на экран без использования заблокированных внешних баз
-        function handleSend() {
+        // Проверяем, есть ли уже переписка в ссылке
+        function loadHistory() {
+            const params = new URLSearchParams(window.location.search);
+            const history = params.get('chat');
+            if (history) {
+                const messages = history.split('||');
+                messages.forEach(m => {
+                    if(!m) return;
+                    const data = m.split('::');
+                    const sender = data[0];
+                    const text = decodeURIComponent(data[1]);
+                    addMessageToScreen(sender === 'me' ? 'Вы' : 'Друг', text, sender === 'me' ? 'my-msg' : 'friend-msg');
+                });
+            } else {
+                addMessageToScreen('Система', 'Добро пожаловать в Smax! Напишите текст и нажмите Отправить.', 'friend-msg');
+            }
+        }
+
+        function addMessageToScreen(author, text, className) {
+            const row = document.createElement('div');
+            row.classList.add('msg-row', className);
+            row.innerHTML = `
+                <div class="msg-author">${author}</div>
+                <div class="bubble">${text}</div>
+            `;
+            msgBox.appendChild(row);
+            msgBox.scrollTop = msgBox.scrollHeight;}
+
+        function sendMessage() {
             const text = msgInput.value.trim();
             if (!text) return;
 
-            const row = document.createElement('div');
-            row.classList.add('msg-row', 'my-msg');
+            // Выводим сообщение на экран
+            addMessageToScreen('Вы', text, 'my-msg');
+
+            // Обновляем адресную строку, добавляя текст в ссылку
+            const params = new URLSearchParams(window.location.search);
+            let currentChat = params.get('chat') || '';
+            currentChat += (currentChat ? '||' : '') + 'friend::' + encodeURIComponent(text); // Для друга это придет как friend
             
-            row.innerHTML = `
-                <div class="msg-author">Вы</div>
-                <div class="bubble">${text}</div>
-            `;
-            
-            msgBox.appendChild(row);
+            const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?chat=' + currentChat;
+            window.history.pushState({path:newUrl}, '', newUrl);
+
             msgInput.value = '';
-            msgBox.scrollTop = msgBox.scrollHeight;
         }
 
-        // Привязываем клик мышки
-        sendClick.addEventListener('click', handleSend);
+        // Самая надежная привязка событий в JavaScript без посредников
+        sendClick.onclick = function() {
+            sendMessage();
+        };
 
-        // Привязываем нажатие кнопки EntermsgInput.addEventListener('keydown', function(event) {
+        msgInput.onkeydown = function(event) {
             if (event.key === 'Enter') {
-                event.preventDefault(); // Защита от перезагрузки формы
-                handleSend();
+                sendMessage();
             }
-        });
+        };
+
+        // Запуск при старте страницы
+        window.onload = loadHistory;
     </script>
 
 </body>
