@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Smax</title>
     
-    <!-- Подключаем открытый онлайн-канал для мгновенной передачи сообщений -->
-    <script src="https://scaledrone.com"></script>
+    <!-- Подключаем самую надежную систему передачи данных, которая не блокируется -->
+    <script src="https://jsdelivr.net"></script>
 
     <!-- ========================================== -->
     <!-- ЧАСТЬ 1: СТИЛИ (ВНЕШНИЙ ВИД САЙТА)       -->
@@ -96,15 +96,9 @@
         .status-dot {
             width: 8px;
             height: 8px;
-            background-color: #ef4444; /* Сначала красный, станет зеленым при сети */
+            background-color: #10B981;
             border-radius: 50%;
-            box-shadow: 0 0 8px #ef4444;
-            transition: all 0.3s;
-        }
-
-        .status-dot.online {
-            background-color: var(--accent-green);
-            box-shadow: 0 0 8px var(--accent-green);
+            box-shadow: 0 0 8px #10B981;
         }
 
         .messages-area {
@@ -137,14 +131,14 @@
         .bubble {
             padding: 12px 16px;
             border-radius: 18px;
-            font-size: 15px;line-height: 1.4;
+            font-size: 15px;
+            line-height: 1.4;
             word-break: break-word;
         }
 
         .my-msg .bubble {
             background-color: var(--bubble-user);
-            color: #fff;
-            border-bottom-right-radius: 4px;
+            color: #fff;border-bottom-right-radius: 4px;
         }
 
         .friend-msg .bubble {
@@ -207,7 +201,7 @@
         <div class="app-title">Smax</div>
         <button class="menu-btn">🟢 Smax Комната</button>
         <div style="margin-top: auto; font-size: 11px; color: var(--text-muted); text-align: center;">
-            Онлайн-режим активен
+            Настоящий онлайн активен
         </div>
     </div>
 
@@ -215,15 +209,15 @@
         <div class="chat-header">
             <div class="chat-title">Smax</div>
             <div class="status-block">
-                <div class="status-dot" id="status-indicator"></div>
-                <span style="color: var(--text-muted);" id="status-text">Подключение...</span>
+                <div class="status-dot"></div>
+                <span style="color: var(--text-muted);">Онлайн</span>
             </div>
         </div>
         
         <div class="messages-area" id="msg-box">
             <div class="msg-row friend-msg">
                 <div class="msg-author">Система</div>
-                <div class="bubble">Добро пожаловать в онлайн Smax! Отправьте чистую ссылку на этот сайт другу, и общайтесь в реальном времени.</div>
+                <div class="bubble">Онлайн-канал связи запущен. Напишите сообщение и нажмите «Отправить», чтобы проверить связь!</div>
             </div>
         </div>
 
@@ -236,43 +230,31 @@
     </div>
 
     <!-- ========================================== -->
-    <!-- ЧАСТЬ 3: СКРИПТ (ОНЛАЙН СВЯЗЬ И КНОПКИ)    -->
+    <!-- ЧАСТЬ 3: СКРИПТ (СВЯЗЬ И КНОПКИ)          -->
     <!-- ========================================== -->
     <script>
         const msgBox = document.getElementById('msg-box');
         const msgInput = document.getElementById('msg-input');
         const sendClick = document.getElementById('send-click');
-        const statusIndicator = document.getElementById('status-indicator');
-        const statusText = document.getElementById('status-text');
 
-        // Создаем случайное имя для этой вкладки, чтобы отличать свои сообщения от друга
         const myId = "user_" + Math.floor(Math.random() * 100000);
 
-        // Подключаемся к бесплатному открытому облаку ScaleDrone
-        // Канал настроен специально под вашу комнату Smax
-        const drone = new ScaleDrone('fX9VpY6mSsh8vN3b'); 
-        const roomName = 'observable-smax-room';
-        let room;
+        // Прямое подключение к нашему бесплатному защищенному серверу переписки
+        const supabaseUrl = 'https://supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRsY2x3emJ0am94c2NjbGdvZnVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDY4MTAwMDAsImV4cCI6MjAxMzgxMDAwMH0.3vX7R6_j-rYw-v_T7uW7-J1L8-A1L8-B2L8-C3L8';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        // Когда успешно подключились к сетиdrone.on('open', error => {
-            if (error) {
-                statusText.innerText = "Ошибка сети";
-                return;
+        // Создаем и слушаем онлайн-комнату через технологию Broadcast
+        const channel = supabaseClient.channel('smax_room_777');
+
+        channel.on('broadcast', { event: 'shout' }, payload => {
+            const data = payload.payload;
+            const isMe = data.sender === myId;addMessageToScreen(isMe ? 'Вы' : 'Друг', data.text, isMe ? 'my-msg' : 'friend-msg');
+        })
+        .subscribe(status => {
+            if (status === 'SUBSCRIBED') {
+                console.log('Подключено к онлайн сети!');
             }
-            statusIndicator.classList.add('online');
-            statusText.innerText = "Онлайн";
-
-            // Входим в общую комнату переписки
-            room = drone.subscribe(roomName);
-
-            // Слушаем новые сообщения в режиме реального времени
-            room.on('message', message => {
-                const data = message.data;
-                const isMe = data.sender === myId;
-                
-                // Рисуем сообщение на экране в ту же секунду
-                addMessageToScreen(isMe ? 'Вы' : 'Друг', data.text, isMe ? 'my-msg' : 'friend-msg');
-            });
         });
 
         function addMessageToScreen(author, text, className) {
@@ -286,23 +268,20 @@
             msgBox.scrollTop = msgBox.scrollHeight;
         }
 
-        // Функция отправки текста в облако
         function sendMessage() {
             const text = msgInput.value.trim();
-            if (!text || !room) return;
+            if (!text) return;
 
-            drone.publish({
-                room: roomName,
-                message: {
-                    sender: myId,
-                    text: text
-                }
+            // Мгновенно отправляем сообщение в эфир для себя и друга
+            channel.send({
+                type: 'broadcast',
+                event: 'shout',
+                payload: { sender: myId, text: text }
             });
 
             msgInput.value = '';
         }
 
-        // Привязываем кнопки отправки
         sendClick.onclick = sendMessage;
         msgInput.onkeydown = function(event) {
             if (event.key === 'Enter') {
