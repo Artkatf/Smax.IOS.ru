@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Smax</title>
+    <!-- Подключаем надежную сеть для передачи сообщений в реальном времени -->
+    <script src="https://pubnub.com"></script>
     <style>
         :root {
             --bg-dark: #0A0A0C;
@@ -133,12 +135,12 @@
         .bubble {
             padding: 12px 16px;
             border-radius: 18px;
-            font-size: 15px;
-            line-height: 1.4;
+            font-size: 15px;line-height: 1.4;
             word-break: break-word;
         }
 
-        .my-msg .bubble {background-color: var(--bubble-user);
+        .my-msg .bubble {
+            background-color: var(--bubble-user);
             color: #fff;
             border-bottom-right-radius: 4px;
         }
@@ -150,7 +152,6 @@
             border: 1px solid var(--border-color);
         }
 
-        /* Форма отправки БЕЗ тега <form> чтобы исключить любые блокировки */
         .input-bar {
             padding: 16px 20px;
             background-color: var(--bg-dark);
@@ -201,7 +202,7 @@
         <div class="app-title">Smax</div>
         <button class="menu-btn">🟢 Smax Комната</button>
         <div style="margin-top: auto; font-size: 11px; color: var(--text-muted); text-align: center;">
-            Автономный код v2.0
+            Режим: Онлайн
         </div>
     </div>
 
@@ -210,12 +211,15 @@
             <div class="chat-title">Smax</div>
             <div class="status-block">
                 <div class="status-dot"></div>
-                <span style="color: var(--text-muted);">Активен</span>
+                <span style="color: var(--text-muted);" id="online-status">Сеть активна</span>
             </div>
         </div>
         
         <div class="messages-area" id="msg-box">
-            <!-- Сюда будут падать сообщения -->
+            <div class="msg-row friend-msg">
+                <div class="msg-author">Система</div>
+                <div class="bubble">Онлайн-режим запущен! Скиньте чистую ссылку на этот сайт другу, и вы сможете общаться в реальном времени.</div>
+            </div>
         </div>
 
         <div class="input-bar">
@@ -231,65 +235,63 @@
         const msgInput = document.getElementById('msg-input');
         const sendClick = document.getElementById('send-click');
 
-        // Проверяем, есть ли уже переписка в ссылке
-        function loadHistory() {
-            const params = new URLSearchParams(window.location.search);
-            const history = params.get('chat');
-            if (history) {
-                const messages = history.split('||');
-                messages.forEach(m => {
-                    if(!m) return;
-                    const data = m.split('::');
-                    const sender = data[0];
-                    const text = decodeURIComponent(data[1]);
-                    addMessageToScreen(sender === 'me' ? 'Вы' : 'Друг', text, sender === 'me' ? 'my-msg' : 'friend-msg');
-                });
-            } else {
-                addMessageToScreen('Система', 'Добро пожаловать в Smax! Напишите текст и нажмите Отправить.', 'friend-msg');
+        // Создаем случайный уникальный ID для вашей сессии (чтобы код понимал, кто "Вы", а кто "Друг")
+        const myUserId = "user_" + Math.floor(Math.random() * 100000);
+
+        // Подключаем бесплатные ключи связи
+        const pubnub = new PubNub({
+            publishKey: 'pub-c-49bb2fa7-7c15-4fa7-9577-bd7efd373307',
+            subscribeKey: 'sub-c-0c8da94e-d635-429a-ae57-55c4d5162ffb',
+            userId: myUserId
+        });
+
+        // Название вашей секретной комнаты связи (можете изменить на любое свое)
+        const channelName = 'smax_private_room_art';
+
+        // Слушаем входящие сообщения в реальном времени
+        pubnub.addListener({
+            message: function(event) {
+                const data = event.message;
+                const isMe = data.senderId === myUserId;
+                
+                // Добавляем сообщение на экран
+                const row = document.createElement('div');row.classList.add('msg-row', isMe ? 'my-msg' : 'friend-msg');
+                row.innerHTML = `
+                    <div class="msg-author">${isMe ? 'Вы' : 'Друг'}</div>
+                    <div class="bubble">${data.text}</div>
+                `;
+                msgBox.appendChild(row);
+                msgBox.scrollTop = msgBox.scrollHeight;
             }
-        }
+        });
 
-        function addMessageToScreen(author, text, className) {
-            const row = document.createElement('div');
-            row.classList.add('msg-row', className);
-            row.innerHTML = `
-                <div class="msg-author">${author}</div>
-                <div class="bubble">${text}</div>
-            `;
-            msgBox.appendChild(row);
-            msgBox.scrollTop = msgBox.scrollHeight;}
+        // Подключаемся к комнате
+        pubnub.subscribe({
+            channels: [channelName]
+        });
 
+        // Функция отправки букв на сервер
         function sendMessage() {
             const text = msgInput.value.trim();
             if (!text) return;
 
-            // Выводим сообщение на экран
-            addMessageToScreen('Вы', text, 'my-msg');
-
-            // Обновляем адресную строку, добавляя текст в ссылку
-            const params = new URLSearchParams(window.location.search);
-            let currentChat = params.get('chat') || '';
-            currentChat += (currentChat ? '||' : '') + 'friend::' + encodeURIComponent(text); // Для друга это придет как friend
-            
-            const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?chat=' + currentChat;
-            window.history.pushState({path:newUrl}, '', newUrl);
+            pubnub.publish({
+                channel: channelName,
+                message: {
+                    senderId: myUserId,
+                    text: text
+                }
+            });
 
             msgInput.value = '';
         }
 
-        // Самая надежная привязка событий в JavaScript без посредников
-        sendClick.onclick = function() {
-            sendMessage();
-        };
-
+        sendClick.onclick = sendMessage;
         msgInput.onkeydown = function(event) {
             if (event.key === 'Enter') {
                 sendMessage();
             }
         };
-
-        // Запуск при старте страницы
-        window.onload = loadHistory;
     </script>
 
 </body>
